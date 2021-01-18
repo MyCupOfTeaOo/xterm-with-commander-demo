@@ -17,7 +17,6 @@ export class CommanderAddon implements ITerminalAddon {
   };
 
   private _onData = (data: string) => {
-    console.log(JSON.stringify(data));
     switch (data) {
       case '\r': // Enter
       case '\u001b\r':
@@ -162,8 +161,6 @@ export class CommanderAddon implements ITerminalAddon {
   };
 
   private _accessNextEntity = () => {
-    console.log(this._entityPos);
-    console.log(this._entites.length);
     if (
       this._entityPos !== undefined &&
       this._entityPos < this._entites.length - 1
