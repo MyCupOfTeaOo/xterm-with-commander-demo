@@ -28,7 +28,7 @@ function App() {
     term.unicode.activeVersion = '11';
     term.open(termRef.current!);
     fitAddon.fit();
-    term.writeln('hello world!');
+    term.write('hello');
     commanderAddon.prompt();
     return () => {
       term.dispose();

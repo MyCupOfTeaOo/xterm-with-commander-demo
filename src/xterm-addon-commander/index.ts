@@ -1,7 +1,7 @@
 import { IDisposable, ITerminalAddon, Terminal } from 'xterm';
 
 export class CommanderAddon implements ITerminalAddon {
-  private _curLine: number = 1;
+  private _curLine: number = 0;
   private _entites: string[] = [];
   private _entityPos?: number;
   private _curInput: string = '';
@@ -14,9 +14,16 @@ export class CommanderAddon implements ITerminalAddon {
   public activate = (terminal: Terminal) => {
     this._terminal = terminal;
     this._disposables.push(terminal.onData(this._onData));
+    this._disposables.push(terminal.onCursorMove(this._onCursorMove));
+    this._disposables.push(terminal.onSelectionChange(this._onSelectionChange));
   };
 
   private _onData = (data: string) => {
+    // 光标定位
+    if (/(\u001b\[D){2,}|(\u001b\[C){2,}/g.test(data)) {
+      this._terminal?.write(data);
+      return;
+    }
     switch (data) {
       case '\r': // Enter
       case '\u001b\r':
@@ -52,8 +59,11 @@ export class CommanderAddon implements ITerminalAddon {
       case '\u001b[1;8B':
         this._accessNextEntity();
         break;
+      case '\u001b[1;2D': // Arrow Left Select
+        this._selectLeft();
+        break;
+
       case '\u001b[D': // Arrow Left
-      case '\u001b[1;2D':
       case '\u001b[1;3D':
       case '\u001b[1;4D':
       case '\u001b[1;5D':
@@ -64,8 +74,10 @@ export class CommanderAddon implements ITerminalAddon {
           this._terminal?.write(data);
         }
         break;
+      case '\u001b[1;2C': // Arrow Right Select
+        this._selectRight();
+        break;
       case '\u001b[C': // Arrow Right
-      case '\u001b[1;2C':
       case '\u001b[1;3C':
       case '\u001b[1;4C':
       case '\u001b[1;5C':
@@ -105,7 +117,10 @@ export class CommanderAddon implements ITerminalAddon {
 
   public prompt = () => {
     this._terminal?.write('\r\n' + this._shellprompt);
-    this._curLine = this._terminal?.buffer.active.cursorY || this._curLine;
+
+    this._curLine =
+      (this._terminal?.buffer.active.cursorY || this._curLine) + 1;
+    console.log(this._curLine);
     this._curInput = '';
     this._entityPos = undefined;
   };
@@ -173,7 +188,7 @@ export class CommanderAddon implements ITerminalAddon {
     }
   };
 
-  private _overLine(data: string) {
+  private _overLine = (data: string) => {
     const len =
       (this._terminal?.buffer.active.cursorX || 0) - this._shellprompt.length;
     // 光标移动到最前端然后输出空格覆盖到最后段,在回退到最前端,在输出值
@@ -184,20 +199,55 @@ export class CommanderAddon implements ITerminalAddon {
         data,
     );
     this._curInput = data;
-  }
+  };
 
-  private _toHome() {
+  private _toHome = () => {
     const len =
       (this._terminal?.buffer.active.cursorX || 0) - this._shellprompt.length;
-    this._terminal?.write([...Array(len)].map(() => '\b').join(''));
-  }
+    if (len > 0) {
+      this._terminal?.write([...Array(len)].map(() => '\b').join(''));
+    } else {
+      this._terminal?.write([...Array(-len)].map(() => '\u001b[C').join(''));
+    }
+  };
 
-  private _toEnd() {
+  private _toEnd = () => {
     const len =
       this._curInput.length -
       ((this._terminal?.buffer.active.cursorX || 0) - this._shellprompt.length);
-    this._terminal?.write([...Array(len)].map(() => '\u001b[C').join(''));
-  }
+
+    if (len > 0) {
+      this._terminal?.write([...Array(len)].map(() => '\u001b[C').join(''));
+    } else {
+      this._terminal?.write([...Array(-len)].map(() => '\b').join(''));
+    }
+  };
+  private _selectLeft = () => {
+    // const pos = this._terminal?.getSelectionPosition();
+    // const prevX = this._terminal?.buffer.active.cursorX || 0;
+    // const nextX = Math.max(this._shellprompt.length - 1, prevX - 1);
+    // const end = pos?.endColumn || prevX;
+    this._terminal?.write('\u001b[D');
+    // this._terminal?.select(nextX, this._curLine, end - nextX);
+  };
+
+  private _selectRight = () => {
+    this._terminal?.write('\u001b[C');
+  };
+
+  private _onCursorMove = () => {
+    if ((this._terminal?.buffer.active.cursorX || 0) < 2) {
+      this._toHome();
+    }
+    if (
+      (this._terminal?.buffer.active.cursorX || 0) >
+      this._curInput.length + this._shellprompt.length
+    ) {
+      this._toEnd();
+    }
+  };
+
+  private _onSelectionChange = () => {};
 
   public dispose(): void {
     this._disposables.forEach(d => d.dispose());
