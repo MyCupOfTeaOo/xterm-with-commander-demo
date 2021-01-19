@@ -141,6 +141,7 @@ export class LoglevelAddon implements ITerminalAddon {
         output = colorFunc(output);
       }
       this._terminal?.writeln(output);
+      this._terminal?.scrollToBottom();
     };
   };
 }
