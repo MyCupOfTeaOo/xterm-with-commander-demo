@@ -1,4 +1,12 @@
+import { Command } from 'commander-browserify';
 import { IDisposable, ITerminalAddon, Terminal } from 'xterm';
+
+function addXterm(cmd: InstanceType<typeof Command>, xterm: Terminal) {
+  cmd.xterm = xterm;
+  cmd.commands.forEach(item => {
+    addXterm(item, xterm);
+  });
+}
 
 export class CommanderAddon implements ITerminalAddon {
   private _curLine: number = 0;
@@ -8,11 +16,17 @@ export class CommanderAddon implements ITerminalAddon {
 
   private _disposables: IDisposable[] = [];
   private _terminal: Terminal | undefined;
+  private _commander: InstanceType<typeof Command>;
 
   private _shellprompt = '❯ ';
 
+  constructor(commander: InstanceType<typeof Command>) {
+    this._commander = commander;
+  }
+
   public activate = (terminal: Terminal) => {
     this._terminal = terminal;
+    addXterm(this._commander, terminal);
     this._disposables.push(terminal.onData(this._onData));
     this._disposables.push(terminal.onCursorMove(this._onCursorMove));
     this._disposables.push(terminal.onSelectionChange(this._onSelectionChange));
@@ -27,10 +41,7 @@ export class CommanderAddon implements ITerminalAddon {
     switch (data) {
       case '\r': // Enter
       case '\u001b\r':
-        if (this._curInput) {
-          this._entites.push(this._curInput);
-        }
-        this.prompt();
+        this._executableCommand();
         break;
       case '\u0003': // Ctrl+C
         this.prompt();
@@ -110,8 +121,7 @@ export class CommanderAddon implements ITerminalAddon {
         break;
       default:
         // Print
-        this._terminal?.write(data);
-        this._curInput += data;
+        this._input(data);
     }
   };
 
@@ -120,7 +130,6 @@ export class CommanderAddon implements ITerminalAddon {
 
     this._curLine =
       (this._terminal?.buffer.active.cursorY || this._curLine) + 1;
-    console.log(this._curLine);
     this._curInput = '';
     this._entityPos = undefined;
   };
@@ -249,7 +258,84 @@ export class CommanderAddon implements ITerminalAddon {
 
   private _onSelectionChange = () => {};
 
+  private _input = (data: string) => {
+    const x =
+      (this._terminal?.buffer.active.cursorX || 0) - this._shellprompt.length;
+
+    if (x < this._curInput.length) {
+      const suffix = this._curInput.slice(x);
+      this._curInput = this._curInput.slice(0, x) + data + suffix;
+      this._terminal?.write(data + suffix);
+      this._terminal?.write([...Array(suffix.length)].map(() => '\b').join(''));
+    } else {
+      this._curInput += data;
+      this._terminal?.write(data);
+    }
+  };
+
+  public parseInputToArgv = (input: string): string[] => {
+    return parseArgsStringToArgv(input);
+  };
+
+  private _executableCommand = () => {
+    if (this._curInput) {
+      this._entites.push(this._curInput);
+      const argv = this.parseInputToArgv(this._curInput);
+      try {
+        this._commander.parse(argv);
+      } catch (error) {
+        // console.error(error);
+      }
+    }
+    this.prompt();
+  };
+
   public dispose(): void {
     this._disposables.forEach(d => d.dispose());
+  }
+}
+
+function parseArgsStringToArgv(
+  value: string,
+  env?: string,
+  file?: string,
+): string[] {
+  // ([^\s'"]([^\s'"]*(['"])([^\3]*?)\3)+[^\s'"]*) Matches nested quotes until the first space outside of quotes
+
+  // [^\s'"]+ or Match if not a space ' or "
+
+  // (['"])([^\5]*?)\5 or Match "quoted text" without quotes
+  // `\3` and `\5` are a backreference to the quote style (' or ") captured
+  const myRegexp = /([^\s'"]([^\s'"]*(['"])([^\3]*?)\3)+[^\s'"]*)|[^\s'"]+|(['"])([^\5]*?)\5/gi;
+  const myString = value;
+  const myArray: string[] = [];
+  if (env) {
+    myArray.push(env);
+  }
+  if (file) {
+    myArray.push(file);
+  }
+  let match: RegExpExecArray | null;
+  do {
+    // Each call to exec returns the next regex match as an array
+    match = myRegexp.exec(myString);
+    if (match !== null) {
+      // Index 1 in the array is the captured group if it exists
+      // Index 0 is the matched text, which we use if no captured group exists
+      myArray.push(firstString(match[1], match[6], match[0])!);
+    }
+  } while (match !== null);
+
+  return myArray;
+}
+
+// Accepts any number of arguments, and returns the first one that is a string
+// (even an empty string)
+function firstString(...args: Array<any>): string | undefined {
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (typeof arg === 'string') {
+      return arg;
+    }
   }
 }

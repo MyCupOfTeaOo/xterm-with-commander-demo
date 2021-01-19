@@ -1,7 +1,9 @@
 // Type definitions for commander
 // Original definitions by: Alan Agius <https://github.com/alan-agius4>, Marcelo Dezem <https://github.com/mdezem>, vvakame <https://github.com/vvakame>, Jules Randolph <https://github.com/sveinburne>
 
-declare namespace commander {
+import { Terminal } from 'xterm';
+
+declare namespace commanderBrowserify {
   interface CommanderError extends Error {
     code: string;
     exitCode: number;
@@ -34,6 +36,8 @@ declare namespace commander {
     [key: string]: any; // options as properties
 
     args: string[];
+
+    xterm: Terminal | undefined;
 
     commands: Command[];
 
@@ -295,7 +299,7 @@ declare namespace commander {
      *    sub --unknown uuu op => [sub], [--unknown uuu op]
      *    sub -- --unknown uuu op => [sub --unknown uuu op], []
      */
-    parseOptions(argv: string[]): commander.ParseOptionsResult;
+    parseOptions(argv: string[]): commanderBrowserify.ParseOptionsResult;
 
     /**
      * Return an object containing options as key-value pairs
@@ -426,5 +430,5 @@ declare namespace commander {
 
 // Declaring namespace AND global
 // eslint-disable-next-line @typescript-eslint/no-redeclare
-declare const commander: commander.CommanderStatic;
+declare const commander: commanderBrowserify.CommanderStatic;
 export = commander;

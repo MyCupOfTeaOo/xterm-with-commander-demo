@@ -108,6 +108,7 @@ class Command extends EventEmitter {
     this.commands = [];
     this.options = [];
     this.parent = null;
+    this.xterm = undefined;
     this._allowUnknownOption = false;
     this._args = [];
     this.rawArgs = null;
@@ -980,7 +981,6 @@ Read more on https://git.io/JJc0W`);
     const unknown = []; // first unknown option and remaining unknown args
     let dest = operands;
     const args = argv.slice();
-
     function maybeOption(arg) {
       return arg.length > 1 && arg[0] === '-';
     }
@@ -1102,7 +1102,9 @@ Read more on https://git.io/JJc0W`);
 
   missingArgument(name) {
     const message = `error: missing required argument '${name}'`;
-    console.error(message);
+    // @TODO logger
+    this.xterm.write('\r\n');
+    this.xterm.write(message);
     this._exit(1, 'commander.missingArgument', message);
   }
 
@@ -1121,7 +1123,9 @@ Read more on https://git.io/JJc0W`);
     } else {
       message = `error: option '${option.flags}' argument missing`;
     }
-    console.error(message);
+    // @TODO logger
+    this.xterm.write('\r\n');
+    this.xterm.write(message);
     this._exit(1, 'commander.optionMissingArgument', message);
   }
 
@@ -1134,7 +1138,9 @@ Read more on https://git.io/JJc0W`);
 
   missingMandatoryOptionValue(option) {
     const message = `error: required option '${option.flags}' not specified`;
-    console.error(message);
+    // @TODO logger
+    this.xterm.write('\r\n');
+    this.xterm.write(message);
     this._exit(1, 'commander.missingMandatoryOptionValue', message);
   }
 
@@ -1148,7 +1154,10 @@ Read more on https://git.io/JJc0W`);
   unknownOption(flag) {
     if (this._allowUnknownOption) return;
     const message = `error: unknown option '${flag}'`;
-    console.error(message);
+    // @TODO logger
+    this.xterm.write('\r\n');
+    this.xterm.write(message);
+
     this._exit(1, 'commander.unknownOption', message);
   }
 
@@ -1169,7 +1178,9 @@ Read more on https://git.io/JJc0W`);
       (this._hasHelpOption
         ? ` See '${fullCommand} ${this._helpLongFlag}'.`
         : '');
-    console.error(message);
+    // @TODO logger
+    this.xterm.write('\r\n');
+    this.xterm.write(message);
     this._exit(1, 'commander.unknownCommand', message);
   }
 
@@ -1197,8 +1208,9 @@ Read more on https://git.io/JJc0W`);
     this._versionOptionName = versionOption.attributeName();
     this.options.push(versionOption);
     this.on('option:' + versionOption.name(), () => {
-      // @TODO Integrated xterm
-      process.stdout.write(str + '\n');
+      // @TODO logger
+      this.xterm.write('\r\n');
+      this.xterm.write(str + '\r\n');
       this._exit(0, 'commander.version', str);
     });
     return this;
@@ -1465,7 +1477,7 @@ Read more on https://git.io/JJc0W`);
       help.push(padOptionDetails(helpFlags, this._helpDescription));
     }
 
-    return help.join('\n');
+    return help.join('\r\n');
   }
 
   /**
@@ -1481,7 +1493,7 @@ Read more on https://git.io/JJc0W`);
     const commands = this.prepareCommands();
     const width = this.padWidth();
     // @TODO Integrated xterm
-    const columns = process.stdout.columns || 80;
+    const columns = this.xterm.cols || 80;
     const descriptionWidth = columns - width - 4;
 
     return [
@@ -1494,10 +1506,10 @@ Read more on https://git.io/JJc0W`);
             optionalWrap(desc, descriptionWidth, width + 2)
           );
         })
-        .join('\n')
+        .join('\r\n')
         .replace(/^/gm, '  '),
       '',
-    ].join('\n');
+    ].join('\r\n');
   }
 
   /**
@@ -1515,8 +1527,7 @@ Read more on https://git.io/JJc0W`);
       const argsDescription = this._argsDescription;
       if (argsDescription && this._args.length) {
         const width = this.padWidth();
-        // @TODO Integrated xterm
-        const columns = process.stdout.columns || 80;
+        const columns = this.xterm.cols || 80;
         const descriptionWidth = columns - width - 5;
         desc.push('Arguments:');
         this._args.forEach(arg => {
@@ -1557,7 +1568,7 @@ Read more on https://git.io/JJc0W`);
       options = ['Options:', '' + this.optionHelp().replace(/^/gm, '  '), ''];
     }
 
-    return usage.concat(desc).concat(options).concat(cmds).join('\n');
+    return usage.concat(desc).concat(options).concat(cmds).join('\r\n');
   }
 
   /**
@@ -1579,8 +1590,9 @@ Read more on https://git.io/JJc0W`);
     if (typeof cbOutput !== 'string' && !Buffer.isBuffer(cbOutput)) {
       throw new Error('outputHelp callback must return a string or a Buffer');
     }
-    // @TODO Integrated xterm
-    process.stdout.write(cbOutput);
+    // @TODO logger
+    this.xterm.write('\r\n');
+    this.xterm.write(cbOutput);
     this.emit(this._helpLongFlag);
   }
 
@@ -1698,14 +1710,14 @@ function wrap(str, width, indent) {
   const lines = str.match(regex) || [];
   return lines
     .map((line, i) => {
-      if (line.slice(-1) === '\n') {
+      if (line.slice(-1) === '\r\n') {
         line = line.slice(0, line.length - 1);
       }
       return (
         (i > 0 && indent ? Array(indent + 1).join(' ') : '') + line.trimRight()
       );
     })
-    .join('\n');
+    .join('\r\n');
 }
 
 /**

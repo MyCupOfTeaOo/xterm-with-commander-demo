@@ -19,8 +19,6 @@ declare namespace NodeJS {
   }
 }
 
-declare const process: NodeJS.Process;
-
 declare module '*.gif' {
   const src: string;
   export default src;
