@@ -8,13 +8,17 @@ import { program, Command } from 'commander-browserify';
 import 'xterm/css/xterm.css';
 import styles from './App.module.scss';
 import { CommanderAddon } from 'xterm-addon-commander';
+import { LoglevelAddon } from 'xterm-addon-loglevel';
+import log from 'loglevel';
+
+log.setLevel('DEBUG');
 
 const brew = program.command('brew');
 brew.command('tea').action(() => {
-  console.log('brew tea');
+  log.info('brew tea');
 });
 brew.command('coffee').action(() => {
-  console.log('brew coffee');
+  log.error('brew coffee');
 });
 
 // Add nested commands using `.addCommand().
@@ -33,11 +37,11 @@ program.addCommand(makeHeatCommand());
 
 function App() {
   const termRef = useRef<HTMLDivElement>(null);
+  const logTermRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const term = new Terminal({
       cursorStyle: 'bar',
       cursorBlink: true,
-      windowsMode: true,
     });
     const searchAddon = new SearchAddon();
     const unicode11Addon = new Unicode11Addon();
@@ -54,6 +58,23 @@ function App() {
     fitAddon.fit();
     term.write('\r\nhello please input your command \r\n');
     commanderAddon.prompt();
+
+    const logTerm = new Terminal({
+      cursorStyle: 'underline',
+      cursorBlink: true,
+      convertEol: true,
+    });
+    const logFitAddon = new FitAddon();
+
+    const logLevelPlugin = new LoglevelAddon();
+    logTerm.loadAddon(logLevelPlugin);
+    logTerm.loadAddon(new Unicode11Addon());
+    logTerm.loadAddon(new WebLinksAddon());
+    logTerm.loadAddon(logFitAddon);
+    logTerm.unicode.activeVersion = '11';
+    logTerm.open(logTermRef.current!);
+    logFitAddon.fit();
+
     return () => {
       term.dispose();
     };
@@ -62,6 +83,7 @@ function App() {
     <div className={styles.App}>
       <header className={styles.AppHeader}>
         <div ref={termRef}></div>
+        <div ref={logTermRef}></div>
       </header>
     </div>
   );
