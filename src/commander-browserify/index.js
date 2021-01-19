@@ -1477,7 +1477,7 @@ Read more on https://git.io/JJc0W`);
       help.push(padOptionDetails(helpFlags, this._helpDescription));
     }
 
-    return help.join('\r\n');
+    return help.join('\r\n  ');
   }
 
   /**
@@ -1506,8 +1506,8 @@ Read more on https://git.io/JJc0W`);
             optionalWrap(desc, descriptionWidth, width + 2)
           );
         })
-        .join('\r\n')
-        .replace(/^/gm, '  '),
+        .join('\r\n  ')
+        .replace(/^/g, '  '),
       '',
     ].join('\r\n');
   }
@@ -1562,10 +1562,9 @@ Read more on https://git.io/JJc0W`);
     let cmds = [];
     const commandHelp = this.commandHelp();
     if (commandHelp) cmds = [commandHelp];
-
     let options = [];
     if (this._hasHelpOption || this.options.length > 0) {
-      options = ['Options:', '' + this.optionHelp().replace(/^/gm, '  '), ''];
+      options = ['Options:', '' + this.optionHelp().replace(/^/g, '  '), ''];
     }
 
     return usage.concat(desc).concat(options).concat(cmds).join('\r\n');

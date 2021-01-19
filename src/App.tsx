@@ -4,25 +4,11 @@ import { SearchAddon } from 'xterm-addon-search';
 import { Unicode11Addon } from 'xterm-addon-unicode11';
 import { WebLinksAddon } from 'xterm-addon-web-links';
 import { FitAddon } from 'xterm-addon-fit';
-import { Command } from 'commander-browserify';
+import { program, Command } from 'commander-browserify';
 import 'xterm/css/xterm.css';
 import styles from './App.module.scss';
 import { CommanderAddon } from 'xterm-addon-commander';
 
-const program = new Command();
-
-// Commander supports nested subcommands.
-// .command() can add a subcommand with an action handler or an executable.
-// .addCommand() adds a prepared command with an action handler.
-
-// Example output:
-//
-// $ node nestedCommands.js brew tea
-// brew tea
-// $ node nestedCommands.js heat jug
-// heat jug
-
-// Add nested commands using `.command()`.
 const brew = program.command('brew');
 brew.command('tea').action(() => {
   console.log('brew tea');
@@ -45,13 +31,13 @@ function makeHeatCommand() {
 }
 program.addCommand(makeHeatCommand());
 
-
 function App() {
   const termRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const term = new Terminal({
       cursorStyle: 'bar',
       cursorBlink: true,
+      windowsMode: true,
     });
     const searchAddon = new SearchAddon();
     const unicode11Addon = new Unicode11Addon();
@@ -66,7 +52,7 @@ function App() {
     term.unicode.activeVersion = '11';
     term.open(termRef.current!);
     fitAddon.fit();
-    term.write('hello');
+    term.write('\r\nhello please input your command \r\n');
     commanderAddon.prompt();
     return () => {
       term.dispose();
