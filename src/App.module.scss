@@ -22,3 +22,9 @@
 .AppLink {
   color: #61dafb;
 }
+
+.logWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}

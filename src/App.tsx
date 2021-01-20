@@ -38,10 +38,12 @@ program.addCommand(makeHeatCommand());
 function App() {
   const termRef = useRef<HTMLDivElement>(null);
   const logTermRef = useRef<HTMLDivElement>(null);
+  const logTermRef2 = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const term = new Terminal({
       cursorStyle: 'bar',
       cursorBlink: true,
+      convertEol: true,
     });
     const searchAddon = new SearchAddon();
     const unicode11Addon = new Unicode11Addon();
@@ -64,6 +66,7 @@ function App() {
       cursorBlink: true,
       convertEol: true,
     });
+
     const logFitAddon = new FitAddon();
 
     const logLevelPlugin = new LoglevelAddon();
@@ -75,15 +78,37 @@ function App() {
     logTerm.open(logTermRef.current!);
     logFitAddon.fit();
 
+    const logTerm2 = new Terminal({
+      cursorStyle: 'underline',
+      cursorBlink: true,
+      convertEol: true,
+    });
+
+    const logFitAddon2 = new FitAddon();
+
+    const logLevelPlugin2 = new LoglevelAddon();
+    logTerm2.loadAddon(logLevelPlugin2);
+    logTerm2.loadAddon(new Unicode11Addon());
+    logTerm2.loadAddon(new WebLinksAddon());
+    logTerm2.loadAddon(logFitAddon2);
+    logTerm2.unicode.activeVersion = '11';
+    logTerm2.open(logTermRef2.current!);
+    logFitAddon2.fit();
+
     return () => {
       term.dispose();
+      logTerm.dispose();
+      logTerm2.dispose();
     };
   }, []);
   return (
     <div className={styles.App}>
       <header className={styles.AppHeader}>
         <div ref={termRef}></div>
-        <div ref={logTermRef}></div>
+        <div className={styles.logWrapper}>
+          <div ref={logTermRef}></div>
+          <div ref={logTermRef2}></div>
+        </div>
       </header>
     </div>
   );

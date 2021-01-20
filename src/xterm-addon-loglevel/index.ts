@@ -2,6 +2,8 @@ import log, { MethodFactory } from 'loglevel';
 import { IDisposable, ITerminalAddon, Terminal } from 'xterm';
 import color from 'ansi-colors';
 
+const originMethodFactory = log.methodFactory;
+
 let CIRCULAR_ERROR_MESSAGE: any;
 
 function tryStringify(arg: any) {
@@ -108,6 +110,7 @@ function getStacktrace() {
 export class LoglevelAddon implements ITerminalAddon {
   private _disposables: IDisposable[] = [];
   private _terminal: Terminal | undefined;
+  private _originMethodFactory: MethodFactory | undefined;
   public colors: Record<string, (str: string) => string> = {
     ERROR: color.red,
     WARN: color.yellow,
@@ -116,6 +119,8 @@ export class LoglevelAddon implements ITerminalAddon {
   };
 
   constructor() {
+    this._originMethodFactory =
+      log.methodFactory === originMethodFactory ? undefined : log.methodFactory;
     log.methodFactory = this._methodFactory;
     log.setLevel(log.getLevel());
   }
@@ -131,8 +136,13 @@ export class LoglevelAddon implements ITerminalAddon {
   private _methodFactory: MethodFactory = (methodName, level, loggerName) => {
     const needStack = methodName.toUpperCase() === 'ERROR';
     const colorFunc = this.colors[methodName.toUpperCase()];
-
+    const rawMethod = this._originMethodFactory?.(
+      methodName,
+      level,
+      loggerName,
+    );
     return (...message) => {
+      rawMethod?.(...message);
       const stacktrace = needStack ? getStacktrace() : undefined;
       let output = `[${new Date().toISOString()}] ${methodName.toUpperCase()}${String(
         loggerName || '',
