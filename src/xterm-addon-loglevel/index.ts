@@ -1,8 +1,21 @@
-import log, { MethodFactory } from 'loglevel';
-import { IDisposable, ITerminalAddon, Terminal } from 'xterm';
+import log, { LoggingMethod, MethodFactory } from 'loglevel';
+import { ITerminalAddon, Terminal } from 'xterm';
+import moment from 'moment';
 import color from 'ansi-colors';
 
-const originMethodFactory = log.methodFactory;
+const pushMap: Record<string, Set<LoggingMethod>> = {};
+
+const createMethodFactory: MethodFactory = (methodName, level, loggerName) => {
+  const name = methodName.toUpperCase();
+  if (!pushMap[name]) pushMap[name] = new Set<LoggingMethod>();
+  return (...message) => {
+    pushMap[name].forEach(push => push(loggerName, ...message));
+  };
+};
+
+log.methodFactory = createMethodFactory;
+
+log.setLevel(log.getLevel());
 
 let CIRCULAR_ERROR_MESSAGE: any;
 
@@ -88,7 +101,6 @@ function interpolate(array: any[]) {
 
     // update escaped %% values
     result = result.replace(/%{2,2}/g, '%');
-
     index += 1;
   }
   if (array.length > index) {
@@ -108,9 +120,9 @@ function getStacktrace() {
 }
 
 export class LoglevelAddon implements ITerminalAddon {
-  private _disposables: IDisposable[] = [];
   private _terminal: Terminal | undefined;
-  private _originMethodFactory: MethodFactory | undefined;
+  // private _loggerMethods: [string, LoggingMethod][] = [];
+  private _loggerMethods: any[] = [];
   public colors: Record<string, (str: string) => string> = {
     ERROR: color.red,
     WARN: color.yellow,
@@ -118,35 +130,31 @@ export class LoglevelAddon implements ITerminalAddon {
     DEBUG: color.cyan,
   };
 
-  constructor() {
-    this._originMethodFactory =
-      log.methodFactory === originMethodFactory ? undefined : log.methodFactory;
-    log.methodFactory = this._methodFactory;
-    log.setLevel(log.getLevel());
-  }
-
   public activate = (terminal: Terminal) => {
     this._terminal = terminal;
+    Object.keys(pushMap).forEach(key => {
+      const method = this._methodFactory(key);
+      this._loggerMethods.push([key, method]);
+      pushMap[key].add(method);
+    });
   };
 
   public dispose(): void {
-    this._disposables.forEach(d => d.dispose());
+    this._loggerMethods.forEach(item => {
+      pushMap[item[0]].delete(item[1]);
+    });
   }
 
-  private _methodFactory: MethodFactory = (methodName, level, loggerName) => {
+  private _methodFactory = (methodName: string): LoggingMethod => {
     const needStack = methodName.toUpperCase() === 'ERROR';
     const colorFunc = this.colors[methodName.toUpperCase()];
-    const rawMethod = this._originMethodFactory?.(
-      methodName,
-      level,
-      loggerName,
-    );
-    return (...message) => {
-      rawMethod?.(...message);
+    return (loggerName: string | Symbol, ...message) => {
       const stacktrace = needStack ? getStacktrace() : undefined;
-      let output = `[${new Date().toISOString()}] ${methodName.toUpperCase()}${String(
-        loggerName || '',
-      )}: ${interpolate(message)}${stacktrace ? `\n${stacktrace}` : ''}`;
+      let output = `[${moment().format(
+        'YYYY-MM-DD hh:mm:ss',
+      )}] ${methodName.toUpperCase()}${
+        loggerName ? `(${loggerName.toString()})` : ''
+      }: ${interpolate(message)}${stacktrace ? `\n${stacktrace}` : ''}`;
       if (colorFunc) {
         output = colorFunc(output);
       }

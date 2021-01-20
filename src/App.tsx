@@ -44,6 +44,7 @@ function App() {
       cursorStyle: 'bar',
       cursorBlink: true,
       convertEol: true,
+      fontFamily: 'Consolas, ‘Courier New’, monospace',
     });
     const searchAddon = new SearchAddon();
     const unicode11Addon = new Unicode11Addon();
@@ -65,10 +66,10 @@ function App() {
       cursorStyle: 'underline',
       cursorBlink: true,
       convertEol: true,
+      fontFamily: 'Consolas, ‘Courier New’, monospace',
     });
 
     const logFitAddon = new FitAddon();
-
     const logLevelPlugin = new LoglevelAddon();
     logTerm.loadAddon(logLevelPlugin);
     logTerm.loadAddon(new Unicode11Addon());
@@ -82,6 +83,7 @@ function App() {
       cursorStyle: 'underline',
       cursorBlink: true,
       convertEol: true,
+      fontFamily: 'Consolas, ‘Courier New’, monospace',
     });
 
     const logFitAddon2 = new FitAddon();

@@ -1,4 +1,5 @@
 import { Command } from 'commander-browserify';
+import log from 'loglevel';
 import { IDisposable, ITerminalAddon, Terminal } from 'xterm';
 
 function addXterm(cmd: InstanceType<typeof Command>, xterm: Terminal) {
@@ -13,6 +14,8 @@ export class CommanderAddon implements ITerminalAddon {
   private _entites: string[] = [];
   private _entityPos?: number;
   private _curInput: string = '';
+
+  private _logger = log.getLogger('CommanderAddon');
 
   private _disposables: IDisposable[] = [];
   private _terminal: Terminal | undefined;
@@ -282,9 +285,27 @@ export class CommanderAddon implements ITerminalAddon {
       this._entites.push(this._curInput);
       const argv = this.parseInputToArgv(this._curInput);
       try {
+        this._logger.debug('尝试执行命令: ', argv.join(' '));
         this._commander.parse(argv);
       } catch (error) {
-        // console.error(error);
+        if (error.message !== '0') {
+          if (error.message === '1') {
+            this._logger.warn(
+              '命令识别失败退出: ',
+              argv.join(' '),
+              '\n',
+              'exitcode',
+              error.message,
+            );
+          } else {
+            this._logger.error(
+              '执行命令异常: ',
+              argv.join(' '),
+              '\n',
+              error.message,
+            );
+          }
+        }
       }
     }
     this.prompt();
