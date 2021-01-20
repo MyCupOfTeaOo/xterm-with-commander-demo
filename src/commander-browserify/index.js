@@ -1102,8 +1102,7 @@ Read more on https://git.io/JJc0W`);
 
   missingArgument(name) {
     const message = `error: missing required argument '${name}'`;
-    // @TODO logger
-    this.xterm.write('\r\n');
+    this.xterm.write('\n');
     this.xterm.write(message);
     this._exit(1, 'commander.missingArgument', message);
   }
@@ -1123,8 +1122,7 @@ Read more on https://git.io/JJc0W`);
     } else {
       message = `error: option '${option.flags}' argument missing`;
     }
-    // @TODO logger
-    this.xterm.write('\r\n');
+    this.xterm.write('\n');
     this.xterm.write(message);
     this._exit(1, 'commander.optionMissingArgument', message);
   }
@@ -1138,8 +1136,7 @@ Read more on https://git.io/JJc0W`);
 
   missingMandatoryOptionValue(option) {
     const message = `error: required option '${option.flags}' not specified`;
-    // @TODO logger
-    this.xterm.write('\r\n');
+    this.xterm.write('\n');
     this.xterm.write(message);
     this._exit(1, 'commander.missingMandatoryOptionValue', message);
   }
@@ -1154,8 +1151,7 @@ Read more on https://git.io/JJc0W`);
   unknownOption(flag) {
     if (this._allowUnknownOption) return;
     const message = `error: unknown option '${flag}'`;
-    // @TODO logger
-    this.xterm.write('\r\n');
+    this.xterm.write('\n');
     this.xterm.write(message);
 
     this._exit(1, 'commander.unknownOption', message);
@@ -1178,8 +1174,7 @@ Read more on https://git.io/JJc0W`);
       (this._hasHelpOption
         ? ` See '${fullCommand} ${this._helpLongFlag}'.`
         : '');
-    // @TODO logger
-    this.xterm.write('\r\n');
+    this.xterm.write('\n');
     this.xterm.write(message);
     this._exit(1, 'commander.unknownCommand', message);
   }
@@ -1208,9 +1203,8 @@ Read more on https://git.io/JJc0W`);
     this._versionOptionName = versionOption.attributeName();
     this.options.push(versionOption);
     this.on('option:' + versionOption.name(), () => {
-      // @TODO logger
-      this.xterm.write('\r\n');
-      this.xterm.write(str + '\r\n');
+      this.xterm.write('\n');
+      this.xterm.write(str + '\n');
       this._exit(0, 'commander.version', str);
     });
     return this;
@@ -1439,8 +1433,8 @@ Read more on https://git.io/JJc0W`);
 
   optionHelp() {
     const width = this.padWidth();
-    // @TODO Integrated xterm , const columns = process.stdout.columns || 80;
-    const columns = 80;
+    // const columns = process.stdout.columns || 80;
+    const columns = this.xterm.cols || 80;
     const descriptionWidth = columns - width - 4;
     function padOptionDetails(flags, description) {
       return (
@@ -1477,7 +1471,7 @@ Read more on https://git.io/JJc0W`);
       help.push(padOptionDetails(helpFlags, this._helpDescription));
     }
 
-    return help.join('\r\n  ');
+    return help.join('\n');
   }
 
   /**
@@ -1492,7 +1486,7 @@ Read more on https://git.io/JJc0W`);
 
     const commands = this.prepareCommands();
     const width = this.padWidth();
-    // @TODO Integrated xterm
+    // const columns = process.stdout.columns || 80;
     const columns = this.xterm.cols || 80;
     const descriptionWidth = columns - width - 4;
 
@@ -1506,10 +1500,10 @@ Read more on https://git.io/JJc0W`);
             optionalWrap(desc, descriptionWidth, width + 2)
           );
         })
-        .join('\r\n  ')
-        .replace(/^/g, '  '),
+        .join('\n')
+        .replace(/^/gm, '  '),
       '',
-    ].join('\r\n');
+    ].join('\n');
   }
 
   /**
@@ -1564,10 +1558,10 @@ Read more on https://git.io/JJc0W`);
     if (commandHelp) cmds = [commandHelp];
     let options = [];
     if (this._hasHelpOption || this.options.length > 0) {
-      options = ['Options:', '' + this.optionHelp().replace(/^/g, '  '), ''];
+      options = ['Options:', '' + this.optionHelp().replace(/^/gm, '  '), ''];
     }
 
-    return usage.concat(desc).concat(options).concat(cmds).join('\r\n');
+    return usage.concat(desc).concat(options).concat(cmds).join('\n');
   }
 
   /**
@@ -1589,8 +1583,7 @@ Read more on https://git.io/JJc0W`);
     if (typeof cbOutput !== 'string' && !Buffer.isBuffer(cbOutput)) {
       throw new Error('outputHelp callback must return a string or a Buffer');
     }
-    // @TODO logger
-    this.xterm.write('\r\n');
+    this.xterm.write('\n');
     this.xterm.write(cbOutput);
     this.emit(this._helpLongFlag);
   }
@@ -1709,14 +1702,14 @@ function wrap(str, width, indent) {
   const lines = str.match(regex) || [];
   return lines
     .map((line, i) => {
-      if (line.slice(-1) === '\r\n') {
+      if (line.slice(-1) === '\n') {
         line = line.slice(0, line.length - 1);
       }
       return (
         (i > 0 && indent ? Array(indent + 1).join(' ') : '') + line.trimRight()
       );
     })
-    .join('\r\n');
+    .join('\n');
 }
 
 /**
