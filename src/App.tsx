@@ -59,7 +59,7 @@ function App() {
     term.unicode.activeVersion = '11';
     term.open(termRef.current!);
     fitAddon.fit();
-    term.write('\r\nhello please input your command \r\n');
+    term.write('\r\n  ❤️   hi! please input your command \r\n');
     commanderAddon.prompt();
 
     const logTerm = new Terminal({
